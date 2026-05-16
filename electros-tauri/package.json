@@ -1,0 +1,19 @@
+{
+  "name": "electros-tauri",
+  "version": "3.1.6",
+  "description": "Electros Desktop Application (Tauri runtime)",
+  "private": true,
+  "scripts": {
+    "tauri": "tauri",
+    "dev": "node scripts/free-port.mjs 5173 && tauri dev",
+    "dev:vite": "node scripts/free-port.mjs 5173 && npm exec vite --prefix ../elemento-gui-new -- --config ../electros-tauri/vite.dev.mjs",
+    "build": "node build.mjs",
+    "build:debug": "node build.mjs --debug"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.0.0"
+  }
+}

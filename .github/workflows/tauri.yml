@@ -1,0 +1,83 @@
+# Tauri CI is disabled. To re-enable: restore push/workflow_dispatch triggers and remove `if: false` on the job.
+name: Build Tauri App
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-tauri:
+    if: false
+    name: Tauri (${{ matrix.platform }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            args: --target aarch64-apple-darwin
+            target: aarch64-apple-darwin
+          - platform: macos-latest
+            args: --target x86_64-apple-darwin
+            target: x86_64-apple-darwin
+          - platform: ubuntu-22.04
+            args: ''
+            target: x86_64-unknown-linux-gnu
+          - platform: windows-latest
+            args: ''
+            target: x86_64-pc-windows-msvc
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+          toolchain: 1.85
+
+      - name: Ubuntu dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Setup GUI dependencies
+        run: |
+          cd elemento-gui-new
+          npm ci
+
+      - name: Setup electros-tauri
+        run: |
+          cd electros-tauri
+          npm ci
+          chmod +x setup.sh populate-daemons.sh
+          ./setup.sh
+
+      - name: Populate daemons
+        env:
+          GITHUB_TOKEN: ${{ secrets.CI_TOKEN }}
+        run: |
+          cd electros-tauri
+          ./populate-daemons.sh || true
+
+      - name: Build Tauri
+        run: |
+          cd electros-tauri
+          npm run build -- ${{ matrix.args }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: electros-tauri-${{ matrix.target }}
+          path: |
+            electros-tauri/src-tauri/target/release/bundle/**/*
+          if-no-files-found: warn

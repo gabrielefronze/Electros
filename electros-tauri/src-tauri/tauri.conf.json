@@ -1,0 +1,57 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Electros",
+  "version": "3.1.6",
+  "identifier": "app.elemento.cloud.tauri",
+  "build": {
+    "beforeDevCommand": "npm exec vite --prefix ../../elemento-gui-new -- --config ../electros-tauri/vite.dev.mjs",
+    "devUrl": "http://localhost:5173/electros/electros.html",
+    "beforeBuildCommand": "",
+    "frontendDist": "../dist-renderer/electros"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Electros",
+        "width": 1280,
+        "height": 800,
+        "decorations": false,
+        "transparent": false,
+        "resizable": true,
+        "fullscreen": false,
+        "zoomHotkeysEnabled": true
+      }
+    ],
+    "security": {
+      "capabilities": ["default"],
+      "csp": null,
+      "dangerousDisableAssetCspModification": true
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": {
+      "../electros-daemons": "electros-daemons",
+      "../terminal": "terminal",
+      "../titlebar": "titlebar"
+    },
+    "externalBin": []
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["electros"]
+      }
+    }
+  }
+}

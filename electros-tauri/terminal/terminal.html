@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="../node_modules/@xterm/xterm/css/xterm.css" />
+    <link rel="stylesheet" href="../electros/css/style.css" />
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            margin: 0;
+            background-color: #0a0e14 !important;
+            position: relative;
+        }
+
+        #terminal {
+            width: calc(100vw - 1rem);
+            height: calc(100vh - 3rem);
+            position: absolute;
+            bottom: 1rem;
+            left: .5rem;
+            right: .5rem;
+            top: 2rem;
+            overflow: hidden;
+            font-variant-ligatures: none;
+        }
+
+        .xterm {
+            font-variant-ligatures: none;
+            text-rendering: geometricPrecision;
+        }
+
+        .electros-titlebar-title {
+            color: #ffa600 !important;
+        }
+    </style>
+    <link rel="stylesheet" href="../titlebar/titlebar.css" />
+    <title>Electros Daemons</title>
+</head>
+<body>
+    <div class="electros-titlebar"></div>
+    <div id="terminal"></div>
+    <script>
+        const { Terminal } = require('@xterm/xterm');
+        const { ipcRenderer } = require('electron');
+        const { Platform } = require('../common/Platform');
+        const {FitAddon} = require("@xterm/addon-fit");
+        const {WebglAddon} = require("@xterm/addon-webgl");
+
+        const CurrentPlatform = new Platform();
+
+        if (CurrentPlatform.isMac()) {
+            document.querySelector('.electros-titlebar').innerHTML = `
+            <div class='electros-titlebar-buttons electros-titlebar-buttons-align-left'>
+                <button class='electros-titlebar-button' id='close-button'></button>
+                <button class='electros-titlebar-button' id='minimize-button'></button>
+                <button class='electros-titlebar-button' id='maximize-button'></button>
+                <button class='electros-titlebar-button' id='fullscreen-button'></button>
+            </div>
+            `;
+            document.querySelector('.electros-titlebar').classList.add('mac');
+        } else {
+            document.querySelector('.electros-titlebar').innerHTML = `
+            <div class='electros-titlebar-buttons electros-titlebar-buttons-align-right'>
+                <button class='electros-titlebar-button' id='minimize-button'></button>
+                <button class='electros-titlebar-button' id='maximize-button'></button>
+                <button class='electros-titlebar-button' id='close-button'></button>
+            </div>
+            `;
+            if (CurrentPlatform.isLinux()) {
+                document.querySelector('.electros-titlebar').classList.add('linux');
+            } else {
+                document.querySelector('.electros-titlebar').classList.add('win');
+            }
+        }
+
+        const buttonActions = {
+            'close-button': 'close-window',
+            'hide-button': 'hide-window',
+            'minimize-button': 'minimize-window',
+            'maximize-button': 'toggle-full-screen',
+            'fullscreen-button': 'maximize-window',
+        };
+
+        Object.entries(buttonActions).forEach(([buttonId, action]) => {
+            const button = document.getElementById(buttonId);
+            if (button) {
+                button.addEventListener('click', () => {
+                    ipcRenderer.invoke(action);
+                });
+            }
+        });
+
+        const term = new Terminal({
+            fontSize: 14,
+            lineHeight: 1.1,
+            fontFamily: `'JetBrains Mono', ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", "DejaVu Sans Mono", monospace`,
+            fontWeight: 'normal',
+            cursorBlink: true,
+            convertEol: true,
+            disableStdin: true,
+            allowTransparency: false,
+            scrollback: 2000,
+            theme: {
+                background: '#0a0e14',
+                foreground: '#ffffff'
+            },
+        });
+
+        const fitAddon = new FitAddon();
+        const webGlAddon = new WebglAddon({
+            preserveDrawingBuffer: true,
+            antialias: true
+        });
+
+        term.loadAddon(fitAddon);
+        term.loadAddon(webGlAddon);
+
+        term.open(document.getElementById('terminal'));
+        fitAddon.fit();
+
+        window.addEventListener('resize', () => {
+            fitAddon.fit();
+        });
+
+        const COLOURS = {
+            BLUE: `\x1b[38:5:38m`,
+            RED: `\x1b[38:5:196m`,
+            YELLOW: `\x1b[38:5:220m`,
+            ORANGE: `\x1b[38:5:202m`,
+            MAGENTA: `\x1b[38:5:190m`,
+            RED_BG: `\x1b[48:5:52m`,
+            GREEN: `\x1b[38:5:34m`,
+            RESET: `\x1b[0m`,
+        };
+
+        ipcRenderer.on('terminal-output', (event, data) => {
+            let colour = "";
+            let actualData = data;
+            if (data instanceof Uint8Array) {
+                actualData = new TextDecoder().decode(data);
+            }
+
+            if (actualData.includes('[INFO]') || actualData.trim().startsWith("INFO: ")) {
+                colour = COLOURS.BLUE;
+            } else if (actualData.includes('[ERROR]')) {
+                colour = COLOURS.RED;
+            } else if (actualData.includes('[WARNING]')) {
+                colour = COLOURS.YELLOW;
+            } else if (actualData.includes('[CRITICAL]')) {
+                colour = COLOURS.RED_BG;
+            } else if (actualData.includes('[DEBUG]')) {
+                colour = COLOURS.MAGENTA;
+            } else if (actualData.includes('[SUCCESS]')) {
+                colour = COLOURS.GREEN;
+            }
+
+
+            term.write(`${colour}${actualData}${COLOURS.RESET}`);
+        });
+    </script>
+</body>
+</html> 

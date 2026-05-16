@@ -1,0 +1,7 @@
+node_modules/
+dist/
+dist-renderer/
+src-tauri/target/
+src-tauri/gen/
+.populate-tmp/
+*.log
